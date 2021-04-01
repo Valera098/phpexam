@@ -19,9 +19,9 @@ if ($_GET['status'] == 'edit' and $_POST['question0']){
     unset($_POST);
     header('location: /admin.php?status=list');
 }
-if($_POST['question0'] and $_GET['status'] == 'add'){
+if($_GET['status'] == 'add' and $_POST['question0']){
     if(empty($_POST['session_link'])){
-    $session_link = bin2hex(random_bytes(5));
+        $session_link = bin2hex(random_bytes(5));
     }else{
         $session_link=$_POST['session_link'];
     }
@@ -97,6 +97,7 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                 ( ($row['session_status'] == 'active')
                 ?'<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=deactivate&id=' . $row['session_link'] . '" class="editLink">[Деактивировать]</a>'
                 :'<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=activate&id=' . $row['session_link'] . '" class="editLink">[Активировать]</a>') .
+                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=analyze&id=' . $row['session_link'] . '" class="editLink">[Анализ]</a>' .
                 '</h5></div></li>';
             }
             echo '</ol> </div>';
@@ -252,6 +253,37 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                 <input type="submit" value="Создать сессию">';
             }
             echo '</form>';
+        }
+        if($_GET['status']=='analyze' and $_GET['id']){
+            $session_link = $_GET['id'];
+            echo "<h1>Анализ сессии \"$session_link\"</h1><hr>";
+            $result = mysqli_query($link, 'SELECT answers FROM `answers` WHERE session_link = "' . $session_link . '"');
+            $users = Array();
+            while($row = mysqli_fetch_array($result)){
+                array_push($users, json_decode($row['answers'], true));
+            }
+            $result = mysqli_query($link, "SELECT questions FROM sessions WHERE session_link = '$session_link'");
+            if (!$result) die();
+            $questions = json_decode(mysqli_fetch_array($result)[0], true);
+            $statsByAnswer = Array();
+            for($j=0;$j<count($questions);$j++){
+                $statsByAnswer[j] = 0;
+            }
+            for($i=0;$i<count($users);$i++){
+                for($j=0;$j<count($questions);$j++){
+                    $statsByAnswer[$j] += $questions[$j]['answer']==$users[$i][$j]['answer'];
+                }
+            }
+            for ($j=0;$j<count($questions);$j++) {
+                $trueAnswer = $questions[$j]['answer'];
+                $question = $questions[$j]['question'];
+                echo "<h3> $question </h3>";
+                echo "Процент правильных ответов: " . (count($users) > 0 ? $statsByAnswer[$j]/count($users)*100 . "%" : "-") . "<br>";
+                echo "Количество правильных ответов: " . $statsByAnswer[$j] . "<br>";
+                echo "Количество ответов: " . count($users) . "<br>";
+                echo "<h5> Правильный ответ: " . $trueAnswer . "<h5>";
+                echo "<br><br>";
+            }
         }
     }else{
         echo 'Возникла ошибка';
