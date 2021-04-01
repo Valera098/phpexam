@@ -16,7 +16,7 @@ session_start();
 <body>
     <div class="container">
         <?php
-        if (isset($_GET['link']) && !empty($_GET['link'])) {
+        if (!empty($_GET['link'])) {
             $query ="SELECT * FROM `sessions` WHERE `session_link`= '".$_GET['link']."'";
             $result = mysqli_query($link, $query) or die("Ошибка " . mysqli_error($link));
             if(mysqli_num_rows($result)!=0){
@@ -46,11 +46,11 @@ session_start();
                             }
                         }
                     }
+                    echo '<input type="submit" value="Отправить">';
                 }else{
                     echo '<h2>Сессия закрыта</h2>';
-
                 }
-                echo '<input type="submit" value="Отправить">';
+                
             }else{
                 echo '<h1>Что-то пошло не так</h1> <h2> Попробуйте спросить ссылку еще раз</h2>';
             }

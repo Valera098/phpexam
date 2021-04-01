@@ -1,3 +1,46 @@
+<?php
+require "includes/bdconnect.php";
+require "includes/input_type.php";
+if ($_GET['status'] == 'edit' and $_POST['question0']){
+    $questions=Array();
+    $session_link = $_POST['session_link'];
+    for ($i = 0; $i < $_POST['count_questions']; $i++){
+        $questions[$i]['type']=$_POST['theme'.$i];
+        $questions[$i]['question']=$_POST['question'.$i];
+            $questions[$i]['options']=$_POST['options'.$i];
+        $questions[$i]['answer']=$_POST['answer'.$i];
+    }
+    $questions = json_encode($questions, JSON_UNESCAPED_UNICODE);
+    $theme = $_POST['theme'];
+    // mysqli_query($link, "UPDATE `sessions` SET session_link = '$session_link' WHERE session_link='$session_link'") or die("Ошибка " . mysqli_error($link));
+    $questions_query="UPDATE `sessions` SET session_status = 'active', theme='$theme', questions='$questions'
+                    WHERE session_link='$session_link'";
+    $result = mysqli_query($link, $questions_query) or die("Ошибка " . mysqli_error($link));
+    unset($_POST);
+    header('location: /admin.php?status=list');
+}
+if($_POST['question0'] and $_GET['status'] == 'add'){
+    if(empty($_POST['session_link'])){
+    $session_link = bin2hex(random_bytes(5));
+    }else{
+        $session_link=$_POST['session_link'];
+    }
+    $questions=Array();
+    for ($i = 0; $i < $_POST['count_questions']; $i++){
+        $questions[$i]['type']=$_POST['theme'.$i];
+        $questions[$i]['question']=$_POST['question'.$i];
+            $questions[$i]['options']=$_POST['options'.$i];
+        $questions[$i]['answer']=$_POST['answer'.$i];
+    }
+    $questions = json_encode($questions, JSON_UNESCAPED_UNICODE);
+    $theme = $_POST['theme'];
+    $questions_query="INSERT INTO `sessions` (session_link, session_status, theme, questions)
+            VALUES ('$session_link', 'active', '$theme', '$questions')";
+    $result = mysqli_query($link, $questions_query) or die("Ошибка " . mysqli_error($link));
+    unset($_POST);
+    header('location: /admin.php?status=list');
+}
+?>
 <!doctype html>
 <html lang="ru">
 <head>
@@ -15,8 +58,6 @@
 <div class="container">
 <?php
 // session_start();
-require "includes/bdconnect.php";
-require "includes/input_type.php";
 if (isset($_GET['logout']))
 {
     unset($_SESSION['password']);
@@ -30,19 +71,33 @@ if($_SESSION['password']=='12345'||$_GET['status']){
     if($_POST['password']=='12345' || $_SESSION['password']=='12345'||$_GET['status']){
         echo '<h3> Панель Администратора </h3></br>';
 
-        if($_GET['action'] == 'delete' and $_GET['id']) {
+        if($_GET['action'] == 'delete' and !empty($_GET['id'])) {
             $result = mysqli_query($link, 'DELETE FROM `sessions` WHERE session_link = "' . $_GET['id'] . '"');
-            if (!$result) die();
+            if (!$result) die("Ошибка");
+        }
+        if($_GET['action'] == 'activate' and !empty($_GET['id'])) {
+            $session_link = $_GET['id'];
+            $result = mysqli_query($link, "UPDATE `sessions` SET session_status = 'active' WHERE session_link='$session_link'");
+            if (!$result) die("Ошибка");
+        }
+        if($_GET['action'] == 'deactivate' and !empty($_GET['id'])) {
+            $session_link = $_GET['id'];
+            $result = mysqli_query($link, "UPDATE `sessions` SET session_status = 'inactive' WHERE session_link='$session_link'");
+            if (!$result) die("Ошибка");
         }
         if($_GET['status']=='list'){
-            $result = mysqli_query($link,'SELECT session_link, theme FROM sessions');
+            $result = mysqli_query($link,'SELECT session_link, theme, session_status FROM sessions');
             echo '<h3> Актуальные сессии: </h3>';
             echo '<div class="list"> <ol>';
             while ($row = mysqli_fetch_array($result)){
                 echo'
                     <li><div><h5>Ссылка на сессию: <a href="//'.$_SERVER['SERVER_NAME'].'/?link='.$row['session_link'].'">' . $_SERVER['SERVER_NAME'] . '/?link=' . $row['session_link'] .
                 '</a> <a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=edit&id=' . $row['session_link'] . '" class="editLink">[Редактировать]</a>'.
-                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=delete&id=' . $row['session_link'] . '" class="editLink">[Удалить]</a></h5></div></li>';
+                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=delete&id=' . $row['session_link'] . '" class="editLink">[Удалить]</a>' .
+                ( ($row['session_status'] == 'active')
+                ?'<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=deactivate&id=' . $row['session_link'] . '" class="editLink">[Деактивировать]</a>'
+                :'<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=activate&id=' . $row['session_link'] . '" class="editLink">[Активировать]</a>') .
+                '</h5></div></li>';
             }
             echo '</ol> </div>';
         } else {
@@ -124,7 +179,7 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                     echo '<label for="question'.$i.'">Вопрос№' . ($i+1) . ': </label>
                              <input type="text" id="question'.$i.'"  name="question'.$i.'" value="'.($questions[$i] -> question).'" required>';
                     if($_POST['theme'.$i]=='radio'||$_POST['theme'.$i]=='checkbox'){
-                        echo '<label for="options'.$i.'">Варианты ответов(Перечислите через ","): </label>
+                        echo '<label for="options'.$i.'">Варианты(через ","): </label>
                              <input type="text" id="options'.$i.'" name="options'.$i.'" value="'.
                              ($questions[$i]->options).'" required>';
                     }
@@ -138,32 +193,12 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                        echo '<label for="options'.$i.'">Варианты ответов(Перечислите через ","): </label>
                             <input type="text" id="options'.$i.'" name="options'.$i.'" required>';
                    }
-                   echo '<label for="answer'.$i.'">Ответ: </label>
+                   echo '<label for="answer'.$i.'">Ответ:</label>
                             <input type="text" id="answer'.$i.'" name="answer'.$i.'" required><br><br>';
                 }
                 echo '
-                <input name="session_link" id="session_link" type="text" value="'.$_GET['id'].'"><label for="session_link">Ссылка на сессию</label>
-                <input type="submit" value="Изменить сессию">';
-            }
-            if($_POST['question0']){
-                if(!$_POST['session_link']){
-                $session_link = bin2hex(random_bytes(5));
-                }else{
-                    $session_link=$_POST['session_link'];
-                }
-                $questions=Array();
-                for ($i = 0; $i < $_POST['count_questions']; $i++){
-                    $questions[$i]['type']=$_POST['theme'.$i];
-                    $questions[$i]['question']=$_POST['question'.$i];
-                        $questions[$i]['options']=$_POST['options'.$i];
-                    $questions[$i]['answer']=$_POST['answer'.$i];
-                }
-                $questions = json_encode($questions, JSON_UNESCAPED_UNICODE);
-                $theme = $_POST['theme'];
-                $questions_query="UPDATE `sessions` SET session_status = 'active', theme='$theme', questions='$questions'
-                                WHERE session_link='$session_link'";
-                $result = mysqli_query($link, $questions_query) or die("Ошибка " . mysqli_error($link));
-                unset($_POST);
+                <label for="session_link">Название сессии:&nbsp;</label><input name="session_link" id="session_link" type="text" placeholder="Имя сессии" value="'.$_GET['id'].'">
+                <input type="submit" value="Обновить сессию">';
             }
             echo '</form>';
         }
@@ -177,7 +212,7 @@ if($_SESSION['password']=='12345'||$_GET['status']){
             <input type="text" id="theme" name="theme" value="'.$_POST['theme'].'"></br>
             <label for="count_questions">Количество вопросов в сессии</label>
             <br>
-            <input type="number" id="count_questions" name="count_questions" value="'.$_POST['count_questions'].'"></br>
+            <input type="number" id="count_questions" name="count_questions" value="'.$_POST['count_questions'].'"></hr>
             </div>';
             if(!$_POST['count_questions']){
                 echo '<input type="submit" value="Выбрать">';
@@ -215,26 +250,6 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                 echo '
                 <label for="session_link">Ссылка на сессию</label> <input name="session_link" id="session_link" type="text">
                 <input type="submit" value="Создать сессию">';
-            }
-            if($_POST['question0']){
-                if(!$_POST['session_link']){
-                $session_link = bin2hex(random_bytes(5));
-                }else{
-                    $session_link=$_POST['session_link'];
-                }
-                $questions=Array();
-                for ($i = 0; $i < $_POST['count_questions']; $i++){
-                    $questions[$i]['type']=$_POST['theme'.$i];
-                    $questions[$i]['question']=$_POST['question'.$i];
-                        $questions[$i]['options']=$_POST['options'.$i];
-                    $questions[$i]['answer']=$_POST['answer'.$i];
-                }
-                $questions = json_encode($questions, JSON_UNESCAPED_UNICODE);
-                $theme = $_POST['theme'];
-                $questions_query="INSERT INTO `sessions` (session_link, session_status, theme, questions)
-                        VALUES ('$session_link', 'active', '$theme', '$questions')";
-                $result = mysqli_query($link, $questions_query) or die("Ошибка " . mysqli_error($link));
-                unset($_POST);
             }
             echo '</form>';
         }
