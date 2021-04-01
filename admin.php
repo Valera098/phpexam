@@ -36,7 +36,8 @@ if($_SESSION['password']=='12345'||$_GET['status']){
             while ($row = mysqli_fetch_array($result)){
                 echo'
                     <li><div><h5>Ссылка на сессию: <a href="//'.$_SERVER['SERVER_NAME'].'/?link='.$row['session_link'].'">' . $_SERVER['SERVER_NAME'] . '/?link=' . $row['session_link'] .
-                '</a> <a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=edit&id=' . $row['session_link'] . '">[Редактировать]</a></h5></div></li>';
+                '</a> <a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=edit&id=' . $row['session_link'] . '" class="editLink">[Редактировать]</a>'.
+                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=delete&id=' . $row['session_link'] . '" class="editLink">[Удалить]</a></h5></div></li>';
             }
             echo '</ol> </div>';
         } else {

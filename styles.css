@@ -25,3 +25,6 @@ li {
 input[type=text]{
    width:210px;
 }
+.editLink{
+  float: right;
+}
