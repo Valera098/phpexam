@@ -1,0 +1,27 @@
+body {
+  font-size: 24px;
+}
+
+input {
+  margin-right: 20px;
+}
+
+body {
+  padding-left: 200px;
+  padding-right: 200px;
+}
+
+li {
+  margin: 10px 0px 10px -40px;
+  padding: 5px;
+  background-color: #ededed;
+  list-style-type: none;
+}
+
+.list {
+  border: 5px outset #ededed;
+}
+
+input[type=text]{
+   width:210px;
+}
