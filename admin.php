@@ -29,6 +29,11 @@ if(!empty($_POST)){
 if($_SESSION['password']=='12345'||$_GET['status']){
     if($_POST['password']=='12345' || $_SESSION['password']=='12345'||$_GET['status']){
         echo '<h3> Панель Администратора </h3></br>';
+
+        if($_GET['action'] == 'delete' and $_GET['id']) {
+            $result = mysqli_query($link, 'DELETE FROM `sessions` WHERE session_link = "' . $_GET['id'] . '"');
+            if (!$result) die();
+        }
         if($_GET['status']=='list'){
             $result = mysqli_query($link,'SELECT session_link, theme FROM sessions');
             echo '<h3> Актуальные сессии: </h3>';
@@ -37,7 +42,7 @@ if($_SESSION['password']=='12345'||$_GET['status']){
                 echo'
                     <li><div><h5>Ссылка на сессию: <a href="//'.$_SERVER['SERVER_NAME'].'/?link='.$row['session_link'].'">' . $_SERVER['SERVER_NAME'] . '/?link=' . $row['session_link'] .
                 '</a> <a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=edit&id=' . $row['session_link'] . '" class="editLink">[Редактировать]</a>'.
-                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=delete&id=' . $row['session_link'] . '" class="editLink">[Удалить]</a></h5></div></li>';
+                '<a href="//' . $_SERVER['SERVER_NAME'] .'/admin.php?status=list&action=delete&id=' . $row['session_link'] . '" class="editLink">[Удалить]</a></h5></div></li>';
             }
             echo '</ol> </div>';
         } else {

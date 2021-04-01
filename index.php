@@ -15,45 +15,48 @@ session_start();
 </head>
 <body>
     <div class="container">
-        <a href="admin.php">Зайти от имени администратора</a>
         <?php
-        $get_link ="SELECT * FROM `sessions` WHERE `session_link`= '".$_GET['link']."'";
-        $result = mysqli_query($link, $get_link) or die("Ошибка " . mysqli_error($link));
-        if(mysqli_num_rows($result)!=0){
-            $session = mysqli_fetch_row($result);
-            echo '<h1>Экспертная сессия: "'.$session[2].'"</h1>
-            <form action="/?link='.$_GET['link'].'" method="post">';
-
-            if($session[1]=='active'){
-                $questions= utf8_encode($session[3]);
-                $questions = json_decode($session[3], true);
-                foreach ($questions as $key =>$question){
-                    if($question['type']!='checkbox'&&$question['type']!='radio'){
-                        echo '<label for="question'.$key.'">'.$question['question'].'</label><br>';
-                        echo '<input id="question'.$key.'" name="question'.$key.'" '.get_type($question['type']).'>'.$question[$question].'</input><br><br>';
-                    }else{
-                        echo '<p>'.$question['question'].'</p>';
-                        $radio=explode(',',$question['options']);
-                        if($question['type']=='radio') {
-                            foreach ($radio as $num => $value) {
-                                echo '<input ' . get_type($question['type']) . ' id="question' . $key . $num . '" name="question' . $key . '" value="' . $value . '">';
-                                echo '<label for="question' . $key . $num . '">' . $value . '</label><br><br>';
-                            }
+        if (isset($_GET['link']) && !empty($_GET['link'])) {
+            $query ="SELECT * FROM `sessions` WHERE `session_link`= '".$_GET['link']."'";
+            $result = mysqli_query($link, $query) or die("Ошибка " . mysqli_error($link));
+            if(mysqli_num_rows($result)!=0){
+                $session = mysqli_fetch_row($result);
+                echo '<h1>Экспертная сессия: "'.$session[2].'"</h1>
+                <form action="/?link='.$_GET['link'].'" method="post">';
+                if($session[1]=='active'){
+                    $questions= utf8_encode($session[3]);
+                    $questions = json_decode($session[3], true);
+                    foreach ($questions as $key =>$question){
+                        if($question['type']!='checkbox'&&$question['type']!='radio'){
+                            echo '<label for="question'.$key.'">'.$question['question'].'</label><br>';
+                            echo '<input id="question'.$key.'" name="question'.$key.'" '. get_type($question['type']) .'>'.$question[$question].'</input><br><br>';
                         }else{
-                            foreach ($radio as $num => $value) {
-                                echo '<input ' . get_type($question['type']) . ' id="question' . $key . $num . '" name="question' . $key . '[]" value="' . $value . '">';
-                                echo '<label for="question' . $key . $num . '">' . $value . '</label><br><br>';
+                            echo '<p>'.$question['question'].'</p>';
+                            $radio=explode(',',$question['options']);
+                            if($question['type']=='radio') {
+                                foreach ($radio as $num => $value) {
+                                    echo '<input ' . get_type($question['type']) . ' id="question' . $key . $num . '" name="question' . $key . '" value="' . $value . '">';
+                                    echo '<label for="question' . $key . $num . '">' . $value . '</label><br><br>';
+                                }
+                            }else{
+                                foreach ($radio as $num => $value) {
+                                    echo '<input ' . get_type($question['type']) . ' id="question' . $key . $num . '" name="question' . $key . '[]" value="' . $value . '">';
+                                    echo '<label for="question' . $key . $num . '">' . $value . '</label><br><br>';
+                                }
                             }
                         }
                     }
-                }
-            }else{
-                echo '<h2>Сессия закрыта</h2>';
+                }else{
+                    echo '<h2>Сессия закрыта</h2>';
 
+                }
+                echo '<input type="submit" value="Отправить">';
+            }else{
+                echo '<h1>Что-то пошло не так</h1> <h2> Попробуйте спросить ссылку еще раз</h2>';
             }
-            echo '<input type="submit" value="Отправить">';
-        }else{
-            echo '<h1>Что-то пошло не так</h1> <h2> Попробуйте спросить ссылку еще раз</h2>';
+        }
+        else {
+            echo '<a href="admin.php">Зайти от имени администратора</a>';
         }
         ?>
     <?php
@@ -79,7 +82,6 @@ session_start();
         $answers_query="INSERT INTO `answers` (client_id, session_link, answers, client_ip, client_date)
                         VALUES ('$client_id', '$session[0]', '$answers', '$client_ip', '$client_date')";
         $result = mysqli_query($link, $answers_query) or die("Ошибка " . mysqli_error($link));
-
     }
     function get_ip()
     {
